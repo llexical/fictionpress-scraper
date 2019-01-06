@@ -20,7 +20,14 @@ async function execAsync(command, options) {
     });
 }
 
+async function createFolder(folder) {
+    if (!fs.existsSync(folder)){
+        fs.mkdirSync(folder);
+    }
+}
+
 module.exports = {
     appendFileAsync,
     execAsync,
+    createFolder,
 };

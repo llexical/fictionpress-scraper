@@ -5,25 +5,30 @@ require('dotenv').config();
 const fs = require('fs');
 const rp = require('request-promise');
 const $ = require('cheerio');
-const {appendFileAsync, execAsync} = require('./helpers.js');
+const CliProgress = require('cli-progress');
+
+const {appendFileAsync, execAsync, createFolder} = require('./helpers.js');
 
 const storyId = process.env.STORY_ID;
-const importsFolder = process.env.IMPORTS_FOLDER;
+const tmpFolder = process.env.TMP_FOLDER || './tmp';
+const outputFolder = process.env.OUTPUT_FOLDER || './output';
 
+const progressBar = new CliProgress.Bar({}, CliProgress.Presets.shades_classic);
 const url = page => `https://www.fictionpress.com/s/${storyId}/${page}`;
-const storyFolder = `${importsFolder}/${storyId}`;
+const storyFolder = `${tmpFolder}/${storyId}`;
 const meta = {
     title: '',
     authors: '',
     comments: '',
     pubdate: '',
-    publisher: 'fictionpress.com'
-}
+    publisher: 'fictionpress.com',
+};
+let pageCount = 0;
+let progressIncrement = 0;
 
-// Create the imports folder if it doesn't exist on run.
-if (!fs.existsSync(importsFolder)){
-    fs.mkdirSync(importsFolder);
-}
+// Create temp & output folders
+createFolder(tmpFolder);
+createFolder(outputFolder);
 
 async function getPage(num, storyFolder) {
     try {
@@ -37,51 +42,50 @@ async function getPage(num, storyFolder) {
         const chapterName = chapter.replace(/^([0-9]+\.)/, '');
         htmlChapter = `<h2 class="chapter">${chapterName}</h2>`
 
-        await appendFileAsync(`${storyFolder}/index.html`, htmlChapter + html)
-        return true;
+        progressBar.update(progressBar.value + progressIncrement);
+        return htmlChapter + html;
     } catch(e) {
         console.error(e);
     }
+}
+
+async function writeHTMLFile(pages) {
+    await appendFileAsync(`${storyFolder}/index.html`, pages.join(''));
 }
 
 async function getStoryMeta() {
     try {
         response = await rp(url(1));
 
+        pageCount = $('#chap_select', response).first().children().length;
+
         meta.title = $('#profile_top > b', response).text();
         meta.authors = [$('#profile_top > a', response).text()];
         meta.comments = $('#profile_top > div', response).text();
-    
-        return true;
     } catch(e) {
         console.error(e);
     }
 }
 
-async function convertStoryToMobi() {
-    const htmlFile = `${importsFolder}/${storyId}/index.html`; 
-    const mobiFile = `${importsFolder}/${meta.title} - ${storyId}.mobi`; 
+async function convertStory(outputFile) {
+    const htmlFile = `${tmpFolder}/${storyId}/index.html`; 
 
-    try {
-        const options = {
-            ...meta
-        };
-        const optionsString = Object.keys(options)
-            .reduce((acc, key) => acc += ` --${key} "${options[key]}"` , '');
-        
-        await execAsync(`ebook-convert "${htmlFile}" "${mobiFile}" ${optionsString}`);
-    } catch(e) {
-        console.log(e);
-    }
+    const options = {
+        ...meta
+    };
+    const optionsString = Object.keys(options)
+        .reduce((acc, key) => acc += ` --${key} "${options[key]}"` , '');
+    
+    await execAsync(`ebook-convert "${htmlFile}" "${outputFile}" ${optionsString}`);
 }
 
 async function getStory() {
-    let hasPages = true, page = 0;
+    let page = 0;
+    const fetchPages = [];
+    progressBar.start(100, 0);
 
     // Create story folder if does not exist
-    if (!fs.existsSync(storyFolder)){
-        fs.mkdirSync(storyFolder);
-    }
+    createFolder(storyFolder);
 
     // Reset index.html if does exist
     if (fs.existsSync(`${storyFolder}/index.html`)) {
@@ -89,17 +93,30 @@ async function getStory() {
     }
 
     // Get story meta info i.e. author, title
-    getStoryMeta();
+    await getStoryMeta();
 
-    // Write pages
-    while(hasPages) {
+    // Set the progress increments and update
+    progressIncrement = Math.floor(100 / (pageCount + 3));
+    progressBar.update(progressBar.value + progressIncrement);
+
+    // Gets all the pages
+    while(page <= pageCount) {
         page++;
-        hasPages = await getPage(page, storyFolder);
+        fetchPages.push(getPage(page, storyFolder));
     };
+    const pages = await Promise.all(fetchPages);
 
-    // Convert to a Mobi file
-    await convertStoryToMobi()
+    // Writes pages to a html file 
+    // (can't write earlier or they wont be in order xD)
+    await writeHTMLFile(pages);
+    progressBar.update(progressBar.value + progressIncrement);
 
+    // Convert to an AW3 file
+    const outputFile = `${outputFolder}/${meta.title} - ${storyId}.azw3`
+    await convertStory(outputFile);
+    progressBar.update(100);
+
+    progressBar.stop();
     console.log(`
         Downloaded & converted successfully!
 
@@ -107,7 +124,14 @@ async function getStory() {
         Authors: ${meta.authors.join(',')}
         Chapters: ${page - 1}
         Summary: ${meta.comments}
+        
+        Saved to: ${outputFile}
     `);
 }
 
-getStory()
+try {
+    getStory();
+} catch(e) {
+    progressBar.stop();
+    console.log(e);
+}

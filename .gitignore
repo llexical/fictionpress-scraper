@@ -63,4 +63,5 @@ typings/
 # Custom
 .DS_Store
 .vscode
-/import
+/tmp
+/output
