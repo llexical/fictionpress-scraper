@@ -1,33 +1,33 @@
-const fs = require('fs');
-const { exec } = require('child_process');
+const fs = require("fs");
+const { exec } = require("child_process");
 
 /** Doesn't block event loop */
 async function appendFileAsync(path, content) {
-    return new Promise((resolve, reject) => {
-        fs.appendFile(path, content, (err) => {
-            if (err) reject(err);
-            resolve();
-        });
+  return new Promise((resolve, reject) => {
+    fs.appendFile(path, content, err => {
+      if (err) reject(err);
+      resolve();
     });
+  });
 }
 
 async function execAsync(command, options) {
-    return new Promise((resolve, reject) => {
-        exec(command, options, (err) => {
-            if (err) reject(err);
-            resolve();
-        });
+  return new Promise((resolve, reject) => {
+    exec(command, options, err => {
+      if (err) reject(err);
+      resolve();
     });
+  });
 }
 
 async function createFolder(folder) {
-    if (!fs.existsSync(folder)){
-        fs.mkdirSync(folder);
-    }
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder);
+  }
 }
 
 module.exports = {
-    appendFileAsync,
-    execAsync,
-    createFolder,
+  appendFileAsync,
+  execAsync,
+  createFolder
 };
