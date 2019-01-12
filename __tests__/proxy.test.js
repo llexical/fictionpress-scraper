@@ -56,7 +56,7 @@ describe("proxy :: getProxy", () => {
     const proxyString = await proxy.getProxy();
 
     expect(proxy.getProxyList).toBeCalledTimes(1);
-    expect(proxyString).toEqual("SOCKS5://37.59.8.29:19571");
+    expect(proxyString).toEqual("socks5://37.59.8.29:19571");
   });
 
   it("should return the same result from the cache", async () => {
@@ -64,6 +64,6 @@ describe("proxy :: getProxy", () => {
     const proxyString = await proxy.getProxy();
 
     expect(proxy.getProxyList).toBeCalledTimes(1);
-    expect(proxyString).toEqual("SOCKS5://37.59.8.29:19571");
+    expect(proxyString).toEqual("socks5://37.59.8.29:19571");
   });
 });

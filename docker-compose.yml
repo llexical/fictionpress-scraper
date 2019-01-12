@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  web:
+    container_name: fpscraper_web
+    build: .
+    environment:
+      - TERM=xterm
+    volumes:
+      - .:/usr/src/app
+    ports:
+      - "3000:3000"

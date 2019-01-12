@@ -7,6 +7,7 @@ const request = require("request-promise");
 const $ = require("cheerio");
 const CliProgress = require("cli-progress");
 const SocksProxyAgent = require("socks-proxy-agent");
+const proxy = require("./proxy");
 
 const { appendFileAsync, execAsync, createFolder } = require("./helpers.js");
 
@@ -14,9 +15,9 @@ const storyId = process.env.STORY_ID;
 const tmpFolder = process.env.TMP_FOLDER || "./tmp";
 const outputFolder = process.env.OUTPUT_FOLDER || "./output";
 
-// Setup Proxy
-const proxyUrl = "socks4://38.84.132.236:42187";
-var agent = new SocksProxyAgent(proxyUrl);
+// Error handling
+const errorFileName = `./errors-${Date.now()}.json`;
+const errors = [];
 
 // Setup Progress bar
 const progressBar = new CliProgress.Bar({}, CliProgress.Presets.shades_classic);
@@ -30,16 +31,23 @@ const meta = {
   pubdate: "",
   publisher: "fictionpress.com"
 };
+let agent;
 let pageCount = 0;
 let progressIncrement = 0;
+let retryLimit = 5;
 
 // Create temp & output folders
 createFolder(tmpFolder);
 createFolder(outputFolder);
 
-async function getPage(num, storyFolder) {
+async function getPage(num) {
   try {
-    response = await request({ uri: url(num), agent });
+    response = await request({
+      uri: url(num),
+      agent,
+      rejectUnauthorized: false,
+      requestCert: true
+    });
 
     const html = $("#storytextp", response).html();
     // Exit out of there are not any more pages!
@@ -54,7 +62,7 @@ async function getPage(num, storyFolder) {
     progressBar.update(progressBar.value + progressIncrement);
     return htmlChapter + html;
   } catch (e) {
-    console.error(e);
+    errors.push(e);
   }
 }
 
@@ -65,7 +73,12 @@ async function writeHTMLFile(pages) {
 
 async function getStoryMeta() {
   try {
-    response = await request({ uri: url(1), agent });
+    response = await request({
+      uri: url(1),
+      agent,
+      rejectUnauthorized: false,
+      requestCert: true
+    });
 
     pageCount = $("#chap_select", response)
       .first()
@@ -108,11 +121,16 @@ async function getStory() {
     fs.writeFileSync(`${storyFolder}/index.html`, "");
   }
 
+  // Setup Proxy
+  const proxyUrl = await proxy.getProxy();
+  agent = new SocksProxyAgent(proxyUrl);
+  progressBar.update(5);
+
   // Get story meta info i.e. author, title
   await getStoryMeta();
 
   // Set the progress increments and update
-  progressIncrement = Math.floor(100 / (pageCount + 3));
+  progressIncrement = Math.floor(95 / (pageCount + 3));
   progressBar.update(progressBar.value + progressIncrement);
 
   // Gets all the pages
@@ -122,6 +140,11 @@ async function getStory() {
   }
   const pages = await Promise.all(fetchPages);
 
+  // If there are errors above then don't create the book
+  if (errors.length) {
+    throw new Error("There were errors downloading the story");
+  }
+
   // Writes pages to a html file
   // (can't write earlier or they wont be in order xD)
   await writeHTMLFile(pages);
@@ -130,24 +153,38 @@ async function getStory() {
   // Convert to an AW3 file
   const outputFile = `${outputFolder}/${meta.title} - ${storyId}.azw3`;
   await convertStory(outputFile);
+
   progressBar.update(100);
-
   progressBar.stop();
-  console.log(`
-        Downloaded & converted successfully!
 
-        Title: ${meta.title}
-        Authors: ${meta.authors.join(",")}
-        Chapters: ${page - 1}
-        Summary: ${meta.comments}
-        
-        Saved to: ${outputFile}
+  console.log(`
+      Downloaded & converted successfully!
+
+      Title: ${meta.title}
+      Authors: ${meta.authors.join(",")}
+      Chapters: ${page - 1}
+      Summary: ${meta.comments}
+      
+      Saved to: ${outputFile}
     `);
 }
 
-try {
-  getStory();
-} catch (e) {
-  progressBar.stop();
-  console.log(e);
+async function getStoryRunner() {
+  try {
+    await getStory();
+  } catch (e) {
+    console.log(e);
+    progressBar.stop();
+
+    errors.push(e);
+    fs.writeFileSync(errorFileName, JSON.stringify(errors));
+
+    console.log(`
+      ${e.message}
+  
+      ${errors.length ? `For more information view: ${errorFileName}.` : ""}
+    `);
+  }
 }
+
+getStoryRunner();

@@ -65,3 +65,4 @@ typings/
 .vscode
 /tmp
 /output
+/errors-*.json

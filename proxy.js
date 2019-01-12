@@ -45,11 +45,10 @@ class Proxy {
       proxyList.push({
         ipAddress: ipAddress.match(/([0-9]+\.?)+/g)[0],
         port: port.match(/([0-9])+/g)[0],
-        protocol: "SOCKS" + protocol.match(/([0-9]+)/g).reverse()[0],
+        protocol: "socks" + protocol.match(/([0-9]+)/g).reverse()[0],
         responseTime: +responseTimes.match(/([0-9])+/g)[0]
       });
     });
-
     return proxyList;
   }
 
@@ -57,7 +56,7 @@ class Proxy {
     if (!this.proxy) {
       const proxyList = await this.getProxyList();
       // Order by shortest response time
-      this.proxy = proxyList.sort((a, b) => a.responseTime > b.responseTime)[0];
+      this.proxy = proxyList.sort((a, b) => a.responseTime - b.responseTime)[0];
     }
 
     return `${this.proxy.protocol}://${this.proxy.ipAddress}:${
