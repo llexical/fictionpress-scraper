@@ -40,11 +40,14 @@ let retryLimit = 5;
 createFolder(tmpFolder);
 createFolder(outputFolder);
 
-async function getPage(num) {
+async function getPage(num, retries = 0) {
   try {
+    // Setup Proxy
+    const proxyUrl = await proxy.getProxy();
+
     response = await request({
       uri: url(num),
-      agent,
+      agent: new SocksProxyAgent(proxyUrl),
       rejectUnauthorized: false,
       requestCert: true
     });
@@ -62,6 +65,10 @@ async function getPage(num) {
     progressBar.update(progressBar.value + progressIncrement);
     return htmlChapter + html;
   } catch (e) {
+    if (retries < retryLimit) {
+      proxy.blacklistProxy(proxyUrl);
+      await getPage(num, retries);
+    }
     errors.push(e);
   }
 }
@@ -73,9 +80,12 @@ async function writeHTMLFile(pages) {
 
 async function getStoryMeta() {
   try {
+    // Setup Proxy
+    const proxyUrl = await proxy.getProxy();
+
     response = await request({
       uri: url(1),
-      agent,
+      agent: new SocksProxyAgent(proxyUrl),
       rejectUnauthorized: false,
       requestCert: true
     });
@@ -121,17 +131,12 @@ async function getStory() {
     fs.writeFileSync(`${storyFolder}/index.html`, "");
   }
 
-  // Setup Proxy
-  const proxyUrl = await proxy.getProxy();
-  agent = new SocksProxyAgent(proxyUrl);
-  progressBar.update(5);
-
   // Get story meta info i.e. author, title
   await getStoryMeta();
 
   // Set the progress increments and update
   progressIncrement = Math.floor(95 / (pageCount + 3));
-  progressBar.update(progressBar.value + progressIncrement);
+  progressBar.update(5 + progressBar.value + progressIncrement);
 
   // Gets all the pages
   while (page <= pageCount) {
