@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/llexical/fictionpress-scraper#readme",
   "dependencies": {
+    "aws-sdk": "^2.389.0",
     "cheerio": "^1.0.0-rc.2",
     "cli-progress": "^2.1.1",
     "dotenv": "^6.2.0",

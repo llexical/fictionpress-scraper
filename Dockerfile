@@ -1,7 +1,9 @@
 FROM node:10.15.0
 
 # Install Calibre
-RUN apt-get update && apt-get -y install xdg-utils
+RUN apt-get update
+RUN apt-get -y install xdg-utils
+RUN apt-get install bash-completion
 RUN wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sh /dev/stdin
 
 # Create app directory

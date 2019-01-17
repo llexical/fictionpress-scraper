@@ -31,7 +31,6 @@ const meta = {
   pubdate: "",
   publisher: "fictionpress.com"
 };
-let agent;
 let pageCount = 0;
 let progressIncrement = 0;
 let retryLimit = 5;
@@ -178,7 +177,6 @@ async function getStoryRunner() {
   try {
     await getStory();
   } catch (e) {
-    console.log(e);
     progressBar.stop();
 
     errors.push(e);
