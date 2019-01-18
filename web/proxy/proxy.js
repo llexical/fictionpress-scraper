@@ -1,9 +1,5 @@
-const fs = require("fs");
 const request = require("request-promise");
 const $ = require("cheerio");
-const SocksProxyAgent = require("socks-proxy-agent");
-
-const { appendFileAsync, createFolder } = require("./helpers.js");
 
 const proxyListUrl = "http://www.gatherproxy.com/sockslist";
 

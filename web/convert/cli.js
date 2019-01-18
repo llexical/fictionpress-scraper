@@ -1,19 +1,19 @@
 /**
  * NOTE: Need to add calibre cli tools to PATH for this to work.
  */
-require("dotenv").config();
 const fs = require("fs");
 const request = require("request-promise");
 const $ = require("cheerio");
 const CliProgress = require("cli-progress");
 const SocksProxyAgent = require("socks-proxy-agent");
-const proxy = require("./proxy");
+const proxy = require("../proxy");
+const config = require("../config");
 
-const { appendFileAsync, execAsync, createFolder } = require("./helpers.js");
+const { appendFileAsync, execAsync, createFolder } = require("../helpers");
 
-const storyId = process.env.STORY_ID;
-const tmpFolder = process.env.TMP_FOLDER || "./tmp";
-const outputFolder = process.env.OUTPUT_FOLDER || "./output";
+const storyId = config.STORY_ID;
+const tmpFolder = config.TMP_FOLDER || "./tmp";
+const outputFolder = config.OUTPUT_FOLDER || "./output";
 
 // Error handling
 const errorFileName = `./errors-${Date.now()}.json`;
