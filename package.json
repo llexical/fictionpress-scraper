@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node ./web/server.js",
     "test": "jest",
     "format": "prettier *.js **/*.js --write"
   },

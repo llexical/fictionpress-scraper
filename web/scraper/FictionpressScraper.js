@@ -141,7 +141,8 @@ class FictionpressScraper {
         uri: this.url(num),
         agent: new SocksProxyAgent(proxyUrl),
         rejectUnauthorized: false,
-        requestCert: true
+        requestCert: true,
+        timeout: 10000
       });
       return page;
     } catch (e) {

@@ -177,6 +177,7 @@ describe("FictionpressScraper :: saveStory", () => {
 describe("FictionpressScraper :: getStory", () => {
   beforeEach(() => {
     scraper = new FictionpressScraper(storyId);
+    scraper.pageCount = 2;
     scraper.meta.title = "Hi";
     scraper.meta.authors = ["Andy Lane"];
     scraper.meta.comments = "Some kinda desc here";
