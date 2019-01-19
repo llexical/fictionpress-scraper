@@ -4,9 +4,10 @@
 const fs = require("fs");
 const CliProgress = require("cli-progress");
 const FictionpressScraper = require("../shared/scraper/FictionpressScraper");
+const calibre = require("../shared/calibre");
 const config = require("../config");
 
-const { execAsync, createFolder } = require("../shared/helpers");
+const { createFolder } = require("../shared/helpers");
 
 const storyId = config.STORY_ID;
 const tmpFolder = config.TMP_FOLDER || "./tmp";
@@ -19,24 +20,9 @@ const errors = [];
 // Setup Progress bar
 const progressBar = new CliProgress.Bar({}, CliProgress.Presets.shades_classic);
 
-// Create temp & output folders
-createFolder(tmpFolder);
-createFolder(outputFolder);
-
-async function convertStory(inputFile, outputFile, options) {
-  const optionsString = Object.keys(options).reduce(
-    (acc, key) => (acc += ` --${key} "${options[key]}"`),
-    ""
-  );
-
-  await execAsync(
-    `ebook-convert "${inputFile}" "${outputFile}" ${optionsString}`
-  );
-}
-
 async function getStory() {
   let page = 0;
-  const scraper = new FictionpressScraper(storyId);
+  const scraper = new FictionpressScraper(storyId, { outputFolder: tmpFolder });
   progressBar.start(100, 0);
 
   const { meta, filepath } = await scraper.getStory();
@@ -44,8 +30,9 @@ async function getStory() {
   progressBar.update(80);
 
   // Convert to an AW3 file
+  createFolder(outputFolder);
   const outputFile = `${outputFolder}/${meta.title} - ${storyId}.azw3`;
-  await convertStory(filepath, outputFile, meta);
+  await calibre.ebookConvert(filepath, outputFile, meta);
 
   progressBar.update(100);
   progressBar.stop();
