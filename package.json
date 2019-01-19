@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node ./web/server.js",
+    "start": "nodemon ./web/server.js",
     "test": "jest",
     "format": "prettier *.js **/*.js --write"
   },
@@ -32,6 +32,7 @@
   "devDependencies": {
     "husky": "^1.3.1",
     "jest": "^23.6.0",
+    "nodemon": "^1.18.9",
     "prettier": "^1.15.3"
   },
   "jest": {

@@ -10,8 +10,8 @@ const config = require("../config");
 const { createFolder } = require("../shared/helpers");
 
 const storyId = config.STORY_ID;
-const tmpFolder = config.TMP_FOLDER || "./tmp";
-const outputFolder = config.OUTPUT_FOLDER || "./output";
+const tmpFolder = config.TMP_FOLDER;
+const outputFolder = config.OUTPUT_FOLDER;
 
 // Error handling
 const errorFileName = `./errors-${Date.now()}.json`;
