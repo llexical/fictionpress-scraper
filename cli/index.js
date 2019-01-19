@@ -3,10 +3,10 @@
  */
 const fs = require("fs");
 const CliProgress = require("cli-progress");
-const FictionpressScraper = require("../scraper/FictionpressScraper");
+const FictionpressScraper = require("../shared/scraper/FictionpressScraper");
 const config = require("../config");
 
-const { execAsync, createFolder } = require("../helpers");
+const { execAsync, createFolder } = require("../shared/helpers");
 
 const storyId = config.STORY_ID;
 const tmpFolder = config.TMP_FOLDER || "./tmp";
