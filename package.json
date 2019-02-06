@@ -7,7 +7,9 @@
     "start": "sudo PORT=80 forever start -w ./web/server.js",
     "start:dev": "nodemon ./web/server.js",
     "test": "jest",
-    "format": "prettier *.js **/*.js --write"
+    "format": "prettier *.js **/*.js --write",
+    "cli:fictionpress": "node ./cli/index.js",
+    "cli:ao3": "node ./cli/cliAO3.js"
   },
   "repository": {
     "type": "git",

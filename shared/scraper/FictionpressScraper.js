@@ -56,7 +56,7 @@ class FictionpressScraper {
       // Save story
       const storyPath = await this.saveStory(summary + pages.join(""));
 
-      // Return all info requred to turn into a book :D
+      // Return all info required to turn into a book :D
       return {
         meta: this.meta,
         filepath: storyPath
