@@ -6,7 +6,7 @@ const helpers = require("../helpers");
 
 const proxy = require("../proxy");
 
-class FictionpressScraper {
+class AO3Scraper {
   /**
    *
    * @param {*} storyId
@@ -21,7 +21,7 @@ class FictionpressScraper {
       title: "",
       authors: "",
       comments: "",
-      publisher: "fictionpress.com"
+      publisher: "https://archiveofourown.org/"
     };
     this.pageCount = 0;
   }
@@ -34,19 +34,11 @@ class FictionpressScraper {
    * html file path.
    */
   async getStory() {
-    let page = 0;
-    const fetchPages = [];
-
     try {
-      // Get story meta info i.e. author, title
-      await this.getStoryMeta();
-
-      // Gets all the pages
-      while (page <= this.pageCount) {
-        page++;
-        fetchPages.push(this.getPage(page));
-      }
-      const pages = await Promise.all(fetchPages);
+      // Return the full story
+      const pageHTML = await this.requestPage();
+      this.getStoryMeta(pageHTML);
+      const chapters = this.getChapters(pageHTML);
 
       // Create summary page
       const summary = `<h2 class="chapter">Summary</h2><p>${
@@ -54,7 +46,7 @@ class FictionpressScraper {
       }</p>`;
 
       // Save story
-      const storyPath = await this.saveStory(summary + pages.join(""));
+      const storyPath = await this.saveStory(summary + chapters.join(""));
 
       // Return all info required to turn into a book :D
       return {
@@ -72,7 +64,7 @@ class FictionpressScraper {
    * @param {string} storyHtml
    */
   async saveStory(storyHtml) {
-    const htmlPath = `${this.outputFolder}/${this.storyId}.html`;
+    const htmlPath = `${this.outputFolder}/ao3-${this.storyId}.html`;
     // Create output folder if it doesn't exist
     helpers.createFolder(this.outputFolder);
     // Write html file for story
@@ -83,46 +75,60 @@ class FictionpressScraper {
   /**
    * Finds & stores the stories meta information
    */
-  async getStoryMeta() {
-    const pageHTML = await this.requestPage(1);
+  async getStoryMeta(pageHTML) {
+    this.meta.title = $(".preface h2.title", pageHTML)
+      .text()
+      .trim();
 
-    this.pageCount = $("#chap_select", pageHTML)
-      .first()
-      .children().length;
+    this.meta.authors = [$(".preface a[rel='author']", pageHTML).text()];
 
-    this.meta.title = $("#profile_top > b", pageHTML).text();
-    this.meta.authors = [$("#profile_top > a", pageHTML).text()];
-    this.meta.comments = $("#profile_top > div", pageHTML).text();
+    this.meta.comments = [];
+    $(".preface > .summary p", pageHTML).each((i, elem) =>
+      this.meta.comments.push(
+        $(elem)
+          .text()
+          .trim()
+      )
+    );
+    this.meta.comments = this.meta.comments.join("\n\n");
   }
 
   /**
-   * Gets the pages from fictionpress.com
+   * Gets the chapters from the page html
    * and returns the chapter html.
    *
    * @param {int} num
    */
-  async getPage(num) {
-    const pageHTML = await this.requestPage(num);
+  getChapters(pageHTML) {
+    const chaptersHTML = [];
 
-    const html = $("#storytextp", pageHTML).html();
+    $("#chapters > .chapter", pageHTML).each((index, elem) => {
+      chaptersHTML.push($(elem).html());
+    });
+
     // Exit out of there are not any more pages!
-    if (!html) return false;
+    if (!chaptersHTML) return false;
 
-    const chapter = $("#chap_select option:selected", pageHTML)
-      .first()
-      .text();
-    const chapterName = chapter.replace(/^([0-9]+\.)/, "");
-    const htmlChapter = `<h2 class="chapter">${chapterName}</h2>`;
+    return chaptersHTML.map(chapterHTML => {
+      const chapterName = $("h3.title", chapterHTML).text();
+      const notes = $("#notes .userstuff", chapterHTML).html();
+      const html = $("div[role='article'].userstuff", chapterHTML).html();
 
-    return htmlChapter + html;
+      const htmlChapter = `<h2 class="chapter">${chapterName}</h2>`;
+      const htmlNotes = `<p><b>Notes: ${notes}</b></p>`;
+
+      return htmlChapter + htmlNotes + html;
+    });
   }
 
   /**
    * Returns the full page url for the story.
    * @param {int} page
    */
-  url(page) {
-    return `https://www.fictionpress.com/s/${this.storyId}/${page}`;
+  url() {
+    return `https://archiveofourown.org/works/${
+      this.storyId
+    }?view_adult=true&view_full_work=true`;
   }
 
   /**
@@ -132,13 +138,13 @@ class FictionpressScraper {
    * @param {int} num
    * @param {int} retries
    */
-  async requestPage(num, retries = 0) {
+  async requestPage(retries = 0) {
     // Setup Proxy
     const proxyUrl = await proxy.getProxy();
 
     try {
       const page = await request({
-        uri: this.url(num),
+        uri: this.url(),
         agent: new SocksProxyAgent(proxyUrl),
         rejectUnauthorized: false,
         requestCert: true,
@@ -150,9 +156,9 @@ class FictionpressScraper {
       if (retries >= this.retryLimit) throw e;
 
       proxy.blacklistProxy(proxyUrl);
-      return this.requestPage(num, retries + 1);
+      return this.requestPage(retries + 1);
     }
   }
 }
 
-module.exports = FictionpressScraper;
+module.exports = AO3Scraper;
