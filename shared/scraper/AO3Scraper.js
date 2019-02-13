@@ -90,7 +90,9 @@ class AO3Scraper {
           .trim()
       )
     );
-    this.meta.comments = this.meta.comments.join("\n\n");
+    this.meta.comments = this.meta.comments
+      .join("\n\n")
+      .replace(/[\\$'"]/g, "\\$&");
   }
 
   /**
@@ -115,7 +117,7 @@ class AO3Scraper {
       const html = $("div[role='article'].userstuff", chapterHTML).html();
 
       const htmlChapter = `<h2 class="chapter">${chapterName}</h2>`;
-      const htmlNotes = `<p><b>Notes: ${notes}</b></p>`;
+      const htmlNotes = notes ? `<p><b>Notes: ${notes}</b></p>` : "";
 
       return htmlChapter + htmlNotes + html;
     });
