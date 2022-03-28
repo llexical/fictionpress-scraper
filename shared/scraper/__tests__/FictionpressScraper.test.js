@@ -109,7 +109,7 @@ describe("FictionpressScraper :: getPage", () => {
   });
 
   it("should have added a h2 with the chapter name", async () => {
-    const page = await scraper.getPage(1);
+    const page = await scraper.getPage(1, false);
     const heading = $("h2.chapter", page);
 
     expect(heading.length).toBeGreaterThanOrEqual(1);
@@ -117,7 +117,7 @@ describe("FictionpressScraper :: getPage", () => {
 
   it("should return false if it cannot find the story text", async () => {
     scraper.requestPage = jest.fn(async () => `<html></html>`);
-    const page = await scraper.getPage(1);
+    const page = await scraper.getPage(1, false);
 
     expect(page).toBeFalsy();
   });

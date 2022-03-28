@@ -33,18 +33,18 @@ class FictionpressScraper {
    * Returns an object with meta and the stories
    * html file path.
    */
-  async getStory() {
+  async getStory(useProxy=false) {
     let page = 0;
     const fetchPages = [];
 
     try {
       // Get story meta info i.e. author, title
-      await this.getStoryMeta();
+      await this.getStoryMeta(useProxy);
 
       // Gets all the pages
       while (page <= this.pageCount) {
         page++;
-        fetchPages.push(this.getPage(page));
+        fetchPages.push(this.getPage(page, useProxy));
       }
       const pages = await Promise.all(fetchPages);
 
@@ -83,8 +83,8 @@ class FictionpressScraper {
   /**
    * Finds & stores the stories meta information
    */
-  async getStoryMeta() {
-    const pageHTML = await this.requestPage(1);
+  async getStoryMeta(useProxy) {
+    const pageHTML = await this.requestPage(1, useProxy, false);
 
     this.pageCount = $("#chap_select", pageHTML)
       .first()
@@ -101,8 +101,8 @@ class FictionpressScraper {
    *
    * @param {int} num
    */
-  async getPage(num) {
-    const pageHTML = await this.requestPage(num);
+  async getPage(num, useProxy) {
+    const pageHTML = await this.requestPage(num, useProxy);
 
     const html = $("#storytextp", pageHTML).html();
     // Exit out of there are not any more pages!
@@ -132,17 +132,22 @@ class FictionpressScraper {
    * @param {int} num
    * @param {int} retries
    */
-  async requestPage(num, retries = 0) {
-    // Setup Proxy
-    const proxyUrl = await proxy.getProxy();
+  async requestPage(num, useProxy=false, retries = 0) {
+    let proxyUrl = '';
+
+    if (useProxy) {
+      // setup proxy -- not working right now xD
+      proxyUrl = await proxy.getProxy();
+    }
 
     try {
+      const proxyAgent = useProxy ? {agent: new SocksProxyAgent(proxyUrl)} : {};
       const page = await request({
         uri: this.url(num),
-        agent: new SocksProxyAgent(proxyUrl),
         rejectUnauthorized: false,
         requestCert: true,
-        timeout: 10000
+        timeout: 10000,
+        ...proxyAgent
       });
       return page;
     } catch (e) {
@@ -150,7 +155,7 @@ class FictionpressScraper {
       if (retries >= this.retryLimit) throw e;
 
       proxy.blacklistProxy(proxyUrl);
-      return this.requestPage(num, retries + 1);
+      return this.requestPage(num, useProxy, retries + 1);
     }
   }
 }

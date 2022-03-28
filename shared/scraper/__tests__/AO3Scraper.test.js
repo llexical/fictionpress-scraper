@@ -69,7 +69,7 @@ describe("AO3Scraper :: requestPage", () => {
     });
 
     it("should return a string", async () => {
-      const page = await scraper.requestPage(1);
+      const page = await scraper.requestPage(1, false);
       expect(typeof page).toBe("string");
     });
   });

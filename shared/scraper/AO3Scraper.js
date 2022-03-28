@@ -33,10 +33,10 @@ class AO3Scraper {
    * Returns an object with meta and the stories
    * html file path.
    */
-  async getStory() {
+  async getStory(useProxy=false) {
     try {
       // Return the full story
-      const pageHTML = await this.requestPage();
+      const pageHTML = await this.requestPage(useProxy);
       this.getStoryMeta(pageHTML);
       const chapters = this.getChapters(pageHTML);
 
@@ -140,17 +140,22 @@ class AO3Scraper {
    * @param {int} num
    * @param {int} retries
    */
-  async requestPage(retries = 0) {
-    // Setup Proxy
-    const proxyUrl = await proxy.getProxy();
+  async requestPage(useProxy, retries = 0) {
+    let proxyUrl = '';
+
+    if (useProxy) {
+      // setup proxy -- not working right now xD
+      proxyUrl = await proxy.getProxy();
+    }
 
     try {
+      const proxyAgent = useProxy ? {agent: new SocksProxyAgent(proxyUrl)} : {};
       const page = await request({
         uri: this.url(),
-        agent: new SocksProxyAgent(proxyUrl),
         rejectUnauthorized: false,
         requestCert: true,
-        timeout: 10000
+        timeout: 10000,
+        ...proxyAgent
       });
       return page;
     } catch (e) {
@@ -158,7 +163,7 @@ class AO3Scraper {
       if (retries >= this.retryLimit) throw e;
 
       proxy.blacklistProxy(proxyUrl);
-      return this.requestPage(retries + 1);
+      return this.requestPage(useProxy, retries + 1);
     }
   }
 }
